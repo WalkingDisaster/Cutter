@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,15 +7,17 @@ namespace Cutter.Domain.Model
     {
         private readonly IEnumerable<RequiredItem> _availableItems;
         private readonly decimal _cost;
+        private readonly int _kerf;
         private readonly List<CutItem> _items;
         private readonly int _stockLength;
 
         private int _quantity;
 
-        public CuttingInstructions(int stockLength, decimal cost, IEnumerable<RequiredItem> availableItems)
+        public CuttingInstructions(int stockLength, decimal cost, int kerf, IEnumerable<RequiredItem> availableItems)
         {
             _stockLength = stockLength;
             _cost = cost;
+            _kerf = kerf;
             _availableItems = availableItems;
             _items = new List<CutItem>();
         }
@@ -43,7 +44,17 @@ namespace Cutter.Domain.Model
 
         public int Drop
         {
-            get { return StockLength - Items.Sum(i => i.Quantity*i.Length); }
+            get { return StockLength - Items.Sum(i => i.Quantity * i.Length) + (_kerf * (_items.Count - 1)); }
+        }
+
+        public decimal TotalWaste
+        {
+            get { return Waste*Quantity; }
+        }
+
+        public decimal TotalDrop
+        {
+            get { return Drop*Quantity; }
         }
 
         public IEnumerable<CutItem> Items
@@ -58,6 +69,7 @@ namespace Cutter.Domain.Model
                 return;
             _items.Clear();
             _items.AddRange(optimized);
+            TryToRepeat();
         }
 
         private IEnumerable<CutItem> Optimize(IEnumerable<CutItem> cutItems, int maxLength)
@@ -65,7 +77,7 @@ namespace Cutter.Domain.Model
             var best = cutItems;
             foreach (var item in GetRemainingItems(cutItems, maxLength))
             {
-                if (cutItems.Sum(i => i.Quantity*i.Length) + item.Length > StockLength)
+                if (cutItems.Sum(i => i.Quantity * i.Length + _kerf) + item.Length > StockLength)
                     continue;
                 var items = new List<CutItem>(cutItems.Select(i => i.Clone()));
                 var existing = items.SingleOrDefault(i => i.Length == item.Length);
@@ -79,19 +91,30 @@ namespace Cutter.Domain.Model
                     best = results;
                     continue;
                 }
-                var drop = StockLength - results.Sum(i => i.Quantity * i.Length);
-                var bestDrop = StockLength - best.Sum(i => i.Quantity*i.Length);
+                var drop = StockLength - results.Sum(i => i.Quantity*i.Length) + (_kerf * (results.Count() - 1));
+                var bestDrop = StockLength - best.Sum(i => i.Quantity*i.Length) + (_kerf * best.Count() - 1);
                 if (drop >= 0 && drop < bestDrop)
                     best = results;
             }
-            TryToRepeat(best);
             return best;
         }
 
-        private void TryToRepeat(IEnumerable<CutItem> cuts)
+        private void TryToRepeat()
         {
-            var leastNumberOfRepeat = 0;
-
+            var leastNumberOfRepeat = int.MaxValue;
+            foreach (var item in Items)
+            {
+                var count = _availableItems.Where(i => i.Length == item.Length).Sum(i => i.Quantity)/item.Quantity;
+                if (count <= 1)
+                {
+                    _quantity = 1;
+                    return;
+                }
+                if (count < leastNumberOfRepeat)
+                    leastNumberOfRepeat = count;
+            }
+            if (leastNumberOfRepeat < int.MaxValue)
+                _quantity = leastNumberOfRepeat;
         }
 
         public IEnumerable<RequiredItem> GetRemainingItems(IEnumerable<CutItem> cutItems, int maxLength)

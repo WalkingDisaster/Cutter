@@ -22,7 +22,7 @@ namespace Cutter.Demo.Controllers
                                                                   Length = 350,
                                                                   CostPerUnit = 0,
                                                                   Quantity = 1000,
-                                                                  Kerf = 0
+                                                                  Kerf = 1
                                                               }
                                                       },
                                      RequiredItems = new[]

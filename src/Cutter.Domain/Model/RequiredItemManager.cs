@@ -57,6 +57,7 @@ namespace Cutter.Domain.Model
             {
                 var current = new CuttingInstructions(stockItem.Length,
                                                       stockItem.Cost,
+                                                      stockItem.Kerf,
                                                       Items.Where(i => i.Quantity > 0)
                                                           .Select(i => i.Clone()));
                 current.Optimize();

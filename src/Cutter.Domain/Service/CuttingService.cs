@@ -30,7 +30,7 @@ namespace Cutter.Domain.Service
                                        e => new StockManager(e.Key,
                                                              from i in e.Value
                                                              orderby i.Length descending
-                                                             select new StockItem(i.Quantity, i.Length, i.CostPerUnit)));
+                                                             select new StockItem(i.Quantity, i.Length, i.CostPerUnit, i.Kerf)));
         }
 
         private static IEnumerable<RequiredItemManager> GetRequiredItems(IEnumerable<RequiredItemParameter> items)
