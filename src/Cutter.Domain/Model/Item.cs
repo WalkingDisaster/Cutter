@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Cutter.Domain.Model
 {
+    [DebuggerDisplay("{Quantity} x {Length} units")]
     public abstract class Item
     {
         private readonly int _length;

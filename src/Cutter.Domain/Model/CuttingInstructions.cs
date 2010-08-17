@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,17 +10,24 @@ namespace Cutter.Domain.Model
         private readonly decimal _cost;
         private readonly int _kerf;
         private readonly List<CutItem> _items;
+        private readonly long _shapeId;
         private readonly int _stockLength;
 
         private int _quantity;
 
-        public CuttingInstructions(int stockLength, decimal cost, int kerf, IEnumerable<RequiredItem> availableItems)
+        public CuttingInstructions(long shapeId, int stockLength, decimal cost, int kerf, IEnumerable<RequiredItem> availableItems)
         {
+            _shapeId = shapeId;
             _stockLength = stockLength;
             _cost = cost;
             _kerf = kerf;
             _availableItems = availableItems;
             _items = new List<CutItem>();
+        }
+
+        public long ShapeId
+        {
+            get { return _shapeId; }
         }
 
         public int StockLength
@@ -39,22 +47,26 @@ namespace Cutter.Domain.Model
 
         public decimal Waste
         {
-            get { return Drop*_cost; }
+            get { return Drop * _cost; }
         }
 
         public int Drop
         {
-            get { return StockLength - Items.Sum(i => i.Quantity * i.Length) + (_kerf * (_items.Count - 1)); }
+            get
+            {
+                var amountCutWithKerf = Items.Sum(i => i.Quantity * i.Length) + (_kerf * (_items.Sum(i => i.Quantity) - 1));
+                return StockLength - amountCutWithKerf;
+            }
         }
 
         public decimal TotalWaste
         {
-            get { return Waste*Quantity; }
+            get { return Waste * Quantity; }
         }
 
         public decimal TotalDrop
         {
-            get { return Drop*Quantity; }
+            get { return Drop * Quantity; }
         }
 
         public IEnumerable<CutItem> Items
@@ -77,12 +89,12 @@ namespace Cutter.Domain.Model
             var best = cutItems;
             foreach (var item in GetRemainingItems(cutItems, maxLength))
             {
-                if (cutItems.Sum(i => i.Quantity * i.Length + _kerf) + item.Length > StockLength)
+                if (cutItems.Sum(i => i.Quantity * (i.Length + _kerf)) + item.Length > StockLength)
                     continue;
                 var items = new List<CutItem>(cutItems.Select(i => i.Clone()));
                 var existing = items.SingleOrDefault(i => i.Length == item.Length);
                 if (existing == null)
-                    items.Add(new CutItem {Quantity = 1, Length = item.Length});
+                    items.Add(new CutItem { Quantity = 1, Length = item.Length });
                 else
                     existing.Quantity++;
                 var results = Optimize(items, item.Length);
@@ -91,8 +103,8 @@ namespace Cutter.Domain.Model
                     best = results;
                     continue;
                 }
-                var drop = StockLength - results.Sum(i => i.Quantity*i.Length) + (_kerf * (results.Count() - 1));
-                var bestDrop = StockLength - best.Sum(i => i.Quantity*i.Length) + (_kerf * best.Count() - 1);
+                var drop = StockLength - results.Sum(i => i.Quantity * i.Length) - (_kerf * (results.Count() - 1));
+                var bestDrop = StockLength - best.Sum(i => i.Quantity * i.Length) - (_kerf * best.Count() - 1);
                 if (drop >= 0 && drop < bestDrop)
                     best = results;
             }
@@ -104,7 +116,7 @@ namespace Cutter.Domain.Model
             var leastNumberOfRepeat = int.MaxValue;
             foreach (var item in Items)
             {
-                var count = _availableItems.Where(i => i.Length == item.Length).Sum(i => i.Quantity)/item.Quantity;
+                var count = _availableItems.Where(i => i.Length == item.Length).Sum(i => i.Quantity) / item.Quantity;
                 if (count <= 1)
                 {
                     _quantity = 1;

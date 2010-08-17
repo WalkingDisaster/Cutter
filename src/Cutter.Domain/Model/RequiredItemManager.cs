@@ -7,9 +7,9 @@ namespace Cutter.Domain.Model
     public class RequiredItemManager
     {
         private readonly List<RequiredItem> _items;
-        private readonly Guid _shapeId;
+        private readonly long _shapeId;
 
-        public RequiredItemManager(Guid shapeId, IEnumerable<RequiredItem> items)
+        public RequiredItemManager(long shapeId, IEnumerable<RequiredItem> items)
         {
             _shapeId = shapeId;
             _items = new List<RequiredItem>(items);
@@ -20,7 +20,7 @@ namespace Cutter.Domain.Model
             get { return _items; }
         }
 
-        public Guid ShapeId
+        public long ShapeId
         {
             get { return _shapeId; }
         }
@@ -36,7 +36,7 @@ namespace Cutter.Domain.Model
         public IEnumerable<CuttingInstructions> OptimizeFromStock(StockManager stock)
         {
             var results = new List<CuttingInstructions>();
-            CuttingInstructions instructions = null;
+            CuttingInstructions instructions;
             do
             {
                 instructions = GetBestInstructionsForRemainingPieces(stock);
@@ -55,7 +55,8 @@ namespace Cutter.Domain.Model
             CuttingInstructions best = null;
             foreach (var stockItem in stock.Items)
             {
-                var current = new CuttingInstructions(stockItem.Length,
+                var current = new CuttingInstructions(stock.ShapeId,
+                                                      stockItem.Length,
                                                       stockItem.Cost,
                                                       stockItem.Kerf,
                                                       Items.Where(i => i.Quantity > 0)

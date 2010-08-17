@@ -1,5 +1,8 @@
+using System.Diagnostics;
+
 namespace Cutter.Domain.Model
 {
+    [DebuggerDisplay("{Quantity} x {Length} units")]
     public class CutItem
     {
         public int Quantity { get; set; }

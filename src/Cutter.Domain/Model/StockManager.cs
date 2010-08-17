@@ -7,9 +7,9 @@ namespace Cutter.Domain.Model
     public class StockManager
     {
         private readonly IEnumerable<StockItem> _items;
-        private readonly Guid _shapeId;
+        private readonly long _shapeId;
 
-        public StockManager(Guid shapeId, IEnumerable<StockItem> items)
+        public StockManager(long shapeId, IEnumerable<StockItem> items)
         {
             _shapeId = shapeId;
             _items = items;
@@ -20,7 +20,7 @@ namespace Cutter.Domain.Model
             get { return _items; }
         }
 
-        public Guid ShapeId
+        public long ShapeId
         {
             get { return _shapeId; }
         }
